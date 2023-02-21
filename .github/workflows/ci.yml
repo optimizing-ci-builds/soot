@@ -2,30 +2,81 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: Soot CI
-on:
-  push:
-  pull_request:
+on: [push]
 
 jobs:
   StyleAndLicense:
     name: Check style´and license conformity
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_StyleAndLicense_Checkout_14
+      - run: rm starting_StyleAndLicense_Checkout_14
       - name: Checkout
         uses: actions/checkout@v2
+      - run: touch starting_StyleAndLicense_UseJava8_16
+      - run: rm starting_StyleAndLicense_UseJava8_16
       - name: Use Java 8
         uses: actions/setup-java@v1
         with:
           java-version: '8'
+      - run: touch starting_StyleAndLicense_Stylecheck_20
+      - run: rm starting_StyleAndLicense_Stylecheck_20
       - name: Stylecheck
-        if: always()
         run: |
           mvn -B clean checkstyle:check -Dcheckstyle.failOnViolation=true
+      - run: touch starting_StyleAndLicense_Licensecheck_24
+      - run: rm starting_StyleAndLicense_Licensecheck_24
       - name: Licensecheck
-        if: always()
         run: |
           mvn -B clean license:check-file-header -Dlicence-check.failOnMissingHeader=true
     
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Execute py script # run file
+        if: always()
+        run: |
+          echo pwd
+          ls -la
+          python .github/workflows/script.py
+      - name: Pushes analysis to another repository
+        if: always()
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'UT-SE-Research'
+          destination-repository-name: 'ci-analyzes'
+          target-branch: '1676956980-c0ae930'
+          target-directory: 'soot/.github/workflows/ci/StyleAndLicense'
+        continue-on-error: true
+      - name: Check push directory exit code
+        if: steps.push_directory.outcome == 'failure'
+        run: |
+          echo 'push failed, trying pull and then push'
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email 'ocibsummerresearch2022@gmail.com'
+          git add .
+          git commit -m 'rebased and pushed ${{ github.head_ref }}'
+          while ! git push origin 1676956980-c0ae930; do
+            git pull --rebase https://github.com/UT-SE-Research/ci-analyzes.git 1676956980-c0ae930
+            git remote set-url origin https://UT-SE-Research:${{ secrets.API_TOKEN_GITHUB }}@github.com/UT-SE-Research/ci-analyzes.git
+            git push origin 1676956980-c0ae930
+          done
   BuildAndTest:
     name: Build and Test with java ${{ matrix.java_version }}
     runs-on: ubuntu-latest
@@ -34,29 +85,98 @@ jobs:
         java_version: ['8', '9', '11']
 
     steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+    - run: touch starting_BuildAndTest_Checkout_37
+    - run: rm starting_BuildAndTest_Checkout_37
     - name: Checkout
       uses: actions/checkout@v2
+    - run: touch starting_BuildAndTest_UseJavamatrixjavaversion_39
+    - run: rm starting_BuildAndTest_UseJavamatrixjavaversion_39
     - name: Use Java ${{ matrix.java_version }}
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.java_version }}
+    - run: touch starting_BuildAndTest_BuildandtestJavamatrixjavaversion_43
+    - run: rm starting_BuildAndTest_BuildandtestJavamatrixjavaversion_43
     - name: Build and test Java ${{ matrix.java_version }}
       run: |
         mvn -B clean test -PJava${{ matrix.java_version }}
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Execute py script # run file
+      if: always()
+      run: |
+        echo pwd
+        ls -la
+        python .github/workflows/script.py
+    - name: Pushes analysis to another repository
+      if: always()
+      id: push_directory
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source-directory: 'optimizing-ci-builds-ci-analysis'
+        destination-github-username: 'UT-SE-Research'
+        destination-repository-name: 'ci-analyzes'
+        target-branch: '1676956980-c0ae930'
+        target-directory: 'soot/.github/workflows/ci/BuildAndTest_java_version_${{ matrix.java_version }}'
+      continue-on-error: true
+    - name: Check push directory exit code
+      if: steps.push_directory.outcome == 'failure'
+      run: |
+        echo 'push failed, trying pull and then push'
+        git config --global user.name 'UT-SE-Research'
+        git config --global user.email 'ocibsummerresearch2022@gmail.com'
+        git add .
+        git commit -m 'rebased and pushed ${{ github.head_ref }}'
+        while ! git push origin 1676956980-c0ae930; do
+          git pull --rebase https://github.com/UT-SE-Research/ci-analyzes.git 1676956980-c0ae930
+          git remote set-url origin https://UT-SE-Research:${{ secrets.API_TOKEN_GITHUB }}@github.com/UT-SE-Research/ci-analyzes.git
+          git push origin 1676956980-c0ae930
+        done
 
         
   DeployArtifacts:
     name: Deploy artifacts to Maven Central
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/umbrella'
     needs: [BuildAndTest]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_DeployArtifacts_Checkout_54
+      - run: rm starting_DeployArtifacts_Checkout_54
       - name: Checkout
         uses: actions/checkout@v2
+      - run: touch starting_DeployArtifacts_UseJava8_56
+      - run: rm starting_DeployArtifacts_UseJava8_56
       - name: Use Java 8
         uses: actions/setup-java@v1
         with:
           java-version: '8'
+      - run: touch starting_DeployArtifacts_Deployartifacts_60
+      - run: rm starting_DeployArtifacts_Deployartifacts_60
       - name: Deploy artifacts
         uses: samuelmeuli/action-maven-publish@v1
         with:
@@ -67,10 +187,14 @@ jobs:
           maven_args: "-DskipTests -Dcheckstyle.failOnViolation=true"
       
       # has to happen in same job, so that the documention was already created (would require another checkout and maven run otherwise)
+      - run: touch starting_DeployArtifacts_GetVersion_70
+      - run: rm starting_DeployArtifacts_GetVersion_70
       - name: Get Version
         id: version
         run: echo ::set-output name=version::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
+      - run: touch starting_DeployArtifacts_Organizedocumentationfilesforupload_74
+      - run: rm starting_DeployArtifacts_Organizedocumentationfilesforupload_74
       - name: Organize documentation files for upload
         shell: bash
         env:
@@ -85,9 +209,47 @@ jobs:
           cp ./doc/index.html ${docdir}/
 
 
+      - run: touch starting_DeployArtifacts_DeployJavaDoctoGHpages_88
+      - run: rm starting_DeployArtifacts_DeployJavaDoctoGHpages_88
       - name: Deploy JavaDoc to GH pages
         uses: JamesIves/github-pages-deploy-action@4.1.5
         with:
           branch: gh-pages # The branch the action should deploy to.
           folder: build/ # The folder the action should deploy.
           clean: false # Do not remove existing files in gh-pages
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Execute py script # run file
+        if: always()
+        run: |
+          echo pwd
+          ls -la
+          python .github/workflows/script.py
+      - name: Pushes analysis to another repository
+        if: always()
+        id: push_directory
+        uses: cpina/github-action-push-to-another-repository@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source-directory: 'optimizing-ci-builds-ci-analysis'
+          destination-github-username: 'UT-SE-Research'
+          destination-repository-name: 'ci-analyzes'
+          target-branch: '1676956980-c0ae930'
+          target-directory: 'soot/.github/workflows/ci/DeployArtifacts'
+        continue-on-error: true
+      - name: Check push directory exit code
+        if: steps.push_directory.outcome == 'failure'
+        run: |
+          echo 'push failed, trying pull and then push'
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email 'ocibsummerresearch2022@gmail.com'
+          git add .
+          git commit -m 'rebased and pushed ${{ github.head_ref }}'
+          while ! git push origin 1676956980-c0ae930; do
+            git pull --rebase https://github.com/UT-SE-Research/ci-analyzes.git 1676956980-c0ae930
+            git remote set-url origin https://UT-SE-Research:${{ secrets.API_TOKEN_GITHUB }}@github.com/UT-SE-Research/ci-analyzes.git
+            git push origin 1676956980-c0ae930
+          done
