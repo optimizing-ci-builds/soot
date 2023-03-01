@@ -2,9 +2,7 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: Soot CI
-on:
-  push:
-  pull_request:
+on: [push] # one-run-to-find-them-all
 
 jobs:
   StyleAndLicense:
@@ -18,11 +16,9 @@ jobs:
         with:
           java-version: '8'
       - name: Stylecheck
-        if: always()
         run: |
           mvn -B clean checkstyle:check -Dcheckstyle.failOnViolation=true
       - name: Licensecheck
-        if: always()
         run: |
           mvn -B clean license:check-file-header -Dlicence-check.failOnMissingHeader=true
     
@@ -47,7 +43,6 @@ jobs:
         
   DeployArtifacts:
     name: Deploy artifacts to Maven Central
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/umbrella'
     needs: [BuildAndTest]
     runs-on: ubuntu-latest
     steps:
