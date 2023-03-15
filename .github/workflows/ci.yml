@@ -2,30 +2,87 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: Soot CI
-on:
-  push:
-  pull_request:
+on: [push]
 
 jobs:
   StyleAndLicense:
     name: Check style´and license conformity
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_StyleAndLicense_Checkout_14
+      - run: rm starting_StyleAndLicense_Checkout_14
       - name: Checkout
         uses: actions/checkout@v2
+      - run: touch starting_StyleAndLicense_UseJava8_16
+      - run: rm starting_StyleAndLicense_UseJava8_16
       - name: Use Java 8
         uses: actions/setup-java@v1
         with:
           java-version: '8'
+      - run: touch starting_StyleAndLicense_Stylecheck_20
+      - run: rm starting_StyleAndLicense_Stylecheck_20
       - name: Stylecheck
-        if: always()
         run: |
           mvn -B clean checkstyle:check -Dcheckstyle.failOnViolation=true
+      - run: touch starting_StyleAndLicense_Licensecheck_24
+      - run: rm starting_StyleAndLicense_Licensecheck_24
       - name: Licensecheck
-        if: always()
         run: |
           mvn -B clean license:check-file-header -Dlicence-check.failOnMissingHeader=true
     
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: soot
+          ref: '1678918537-5a20a5b'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p soot/soot/.github/workflows/ci/StyleAndLicense
+          cp -rvT optimizing-ci-builds-ci-analysis soot/soot/.github/workflows/ci/StyleAndLicense
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: soot
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1678918537-5a20a5b; do
+            git pull --rebase origin 1678918537-5a20a5b
+            sleep $((RANDOM % 5 + 1))
+          done
+          echo "Job ID: ${GITHUB_JOB##*_}"
   BuildAndTest:
     name: Build and Test with java ${{ matrix.java_version }}
     runs-on: ubuntu-latest
@@ -34,29 +91,104 @@ jobs:
         java_version: ['8', '9', '11']
 
     steps:
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas
+        pip install numpy
+    - run: sudo apt update
+    - run: sudo apt install inotify-tools
+    - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+    - run: touch starting_BuildAndTest_Checkout_37
+    - run: rm starting_BuildAndTest_Checkout_37
     - name: Checkout
       uses: actions/checkout@v2
+    - run: touch starting_BuildAndTest_UseJavamatrixjavaversion_39
+    - run: rm starting_BuildAndTest_UseJavamatrixjavaversion_39
     - name: Use Java ${{ matrix.java_version }}
       uses: actions/setup-java@v1
       with:
         java-version: ${{ matrix.java_version }}
+    - run: touch starting_BuildAndTest_BuildandtestJavamatrixjavaversion_43
+    - run: rm starting_BuildAndTest_BuildandtestJavamatrixjavaversion_43
     - name: Build and test Java ${{ matrix.java_version }}
       run: |
         mvn -B clean test -PJava${{ matrix.java_version }}
+    - run: touch starting_finished_finished_8979874
+      if: always()
+    - run: rm starting_finished_finished_8979874
+      if: always()
+    - name: Check script file exists and execute
+      if: always()
+      id: check_files
+      uses: andstor/file-existence-action@v1
+      with:
+        files: .github/workflows/script.py
+    - name: File exists
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: |
+        python .github/workflows/script.py
+    - name: Checkout to destination CI-analyzes repo
+      uses: actions/checkout@v3
+      if: always()
+      with:
+        path: soot
+        ref: '1678918537-5a20a5b'
+        repository: 'UT-SE-Research/ci-analyzes'
+        token: '${{ secrets.API_TOKEN_GITHUB }}'
+        persist-credentials: true
+    - name: Copy files to push to another directory
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: |
+        mkdir -p soot/soot/.github/workflows/ci/BuildAndTest_java_version_${{ matrix.java_version }}
+        cp -rvT optimizing-ci-builds-ci-analysis soot/soot/.github/workflows/ci/BuildAndTest_java_version_${{ matrix.java_version }}
+    - name: Pushes analysis to another repository
+      if: steps.check_files.outputs.files_exists == 'true'
+      working-directory: soot
+      run: |
+        commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+        git config --global user.name 'UT-SE-Research'
+        git config --global user.email '${{ secrets.EMAIL }}'
+        git add .
+        git commit -m $commit_message
+        while ! git push -f origin 1678918537-5a20a5b; do
+          git pull --rebase origin 1678918537-5a20a5b
+          sleep $((RANDOM % 5 + 1))
+        done
+        echo "Job ID: ${GITHUB_JOB##*_}"
 
         
   DeployArtifacts:
     name: Deploy artifacts to Maven Central
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/umbrella'
     needs: [BuildAndTest]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas
+          pip install numpy
+      - run: sudo apt update
+      - run: sudo apt install inotify-tools
+      - run: inotifywait -mr /home/runner/work/soot/soot/ --format '%T;%w;%f;%e' --timefmt %T -o /home/runner/inotify-logs.csv & echo 'optimizing-ci-builds'
+      - run: touch starting_DeployArtifacts_Checkout_54
+      - run: rm starting_DeployArtifacts_Checkout_54
       - name: Checkout
         uses: actions/checkout@v2
+      - run: touch starting_DeployArtifacts_UseJava8_56
+      - run: rm starting_DeployArtifacts_UseJava8_56
       - name: Use Java 8
         uses: actions/setup-java@v1
         with:
           java-version: '8'
+      - run: touch starting_DeployArtifacts_Deployartifacts_60
+      - run: rm starting_DeployArtifacts_Deployartifacts_60
       - name: Deploy artifacts
         uses: samuelmeuli/action-maven-publish@v1
         with:
@@ -67,10 +199,14 @@ jobs:
           maven_args: "-DskipTests -Dcheckstyle.failOnViolation=true"
       
       # has to happen in same job, so that the documention was already created (would require another checkout and maven run otherwise)
+      - run: touch starting_DeployArtifacts_GetVersion_70
+      - run: rm starting_DeployArtifacts_GetVersion_70
       - name: Get Version
         id: version
         run: echo ::set-output name=version::$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
+      - run: touch starting_DeployArtifacts_Organizedocumentationfilesforupload_74
+      - run: rm starting_DeployArtifacts_Organizedocumentationfilesforupload_74
       - name: Organize documentation files for upload
         shell: bash
         env:
@@ -85,9 +221,53 @@ jobs:
           cp ./doc/index.html ${docdir}/
 
 
+      - run: touch starting_DeployArtifacts_DeployJavaDoctoGHpages_88
+      - run: rm starting_DeployArtifacts_DeployJavaDoctoGHpages_88
       - name: Deploy JavaDoc to GH pages
         uses: JamesIves/github-pages-deploy-action@4.1.5
         with:
           branch: gh-pages # The branch the action should deploy to.
           folder: build/ # The folder the action should deploy.
           clean: false # Do not remove existing files in gh-pages
+      - run: touch starting_finished_finished_8979874
+        if: always()
+      - run: rm starting_finished_finished_8979874
+        if: always()
+      - name: Check script file exists and execute
+        if: always()
+        id: check_files
+        uses: andstor/file-existence-action@v1
+        with:
+          files: .github/workflows/script.py
+      - name: File exists
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          python .github/workflows/script.py
+      - name: Checkout to destination CI-analyzes repo
+        uses: actions/checkout@v3
+        if: always()
+        with:
+          path: soot
+          ref: '1678918537-5a20a5b'
+          repository: 'UT-SE-Research/ci-analyzes'
+          token: '${{ secrets.API_TOKEN_GITHUB }}'
+          persist-credentials: true
+      - name: Copy files to push to another directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: |
+          mkdir -p soot/soot/.github/workflows/ci/DeployArtifacts
+          cp -rvT optimizing-ci-builds-ci-analysis soot/soot/.github/workflows/ci/DeployArtifacts
+      - name: Pushes analysis to another repository
+        if: steps.check_files.outputs.files_exists == 'true'
+        working-directory: soot
+        run: |
+          commit_message=$GITHUB_REPOSITORY@$GITHUB_WORKFLOW_SHA
+          git config --global user.name 'UT-SE-Research'
+          git config --global user.email '${{ secrets.EMAIL }}'
+          git add .
+          git commit -m $commit_message
+          while ! git push -f origin 1678918537-5a20a5b; do
+            git pull --rebase origin 1678918537-5a20a5b
+            sleep $((RANDOM % 5 + 1))
+          done
+          echo "Job ID: ${GITHUB_JOB##*_}"
