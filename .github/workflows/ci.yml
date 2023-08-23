@@ -2,7 +2,7 @@
 # For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: Soot CI
-on:
+on: # one-run-to-find-them-all
   push:
   pull_request:
 
